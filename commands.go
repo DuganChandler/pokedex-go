@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 )
@@ -44,6 +45,11 @@ func getCommands() map[string]cliCommand {
 			description: "shows the pokemon encounters of the given area",
 			callBack:    commandExplore,
 		},
+		"catch": {
+			name:        "catch <pokemon-name>",
+			description: "attempt to catch selected pokemon",
+			callBack:    commandCatch,
+		},
 	}
 }
 
@@ -85,6 +91,38 @@ func commandExplore(cfg *config, areaName string) error {
 	pokeEncounters := areaInfoResp.PokemonEncounters
 	for _, encounter := range pokeEncounters {
 		fmt.Println(encounter.Pokemon.Name)
+	}
+
+	return nil
+}
+
+func commandCatch(cfg *config, pokemonName string) error {
+	pokemonInfoResp, err := cfg.pokeapiClient.PokemonInfo(pokemonName)
+	if err != nil {
+		return err
+	}
+
+	// values for capture rate calc
+	threshHold := 0.5
+	C := 100.0
+	baseExperience := float64(pokemonInfoResp.BaseExperience)
+	randomNum := rand.Float64()
+
+	captureRate := (randomNum / baseExperience) * C
+
+	cfg.player.mu.Lock()
+	defer cfg.player.mu.Unlock()
+
+	_, ok := cfg.player.pokedex[pokemonName]
+	if !ok {
+		if captureRate >= threshHold {
+			cfg.player.pokedex[pokemonName] = pokemonInfoResp
+			fmt.Printf("Yay! %s was caught!\n", pokemonName)
+		} else {
+			fmt.Println("Darn! It got away!")
+		}
+	} else {
+		fmt.Printf("You already posess a %s! Unable to capture another!\n", pokemonName)
 	}
 
 	return nil

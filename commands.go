@@ -50,6 +50,16 @@ func getCommands() map[string]cliCommand {
 			description: "attempt to catch selected pokemon",
 			callBack:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect <pokemon-name>",
+			description: "inspect a given pokemon that you have captured",
+			callBack:    commandInspect,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "show your pokedex of captured pokemon",
+			callBack:    commandPokedex,
+		},
 	}
 }
 
@@ -125,5 +135,43 @@ func commandCatch(cfg *config, pokemonName string) error {
 		fmt.Printf("You already posess a %s! Unable to capture another!\n", pokemonName)
 	}
 
+	return nil
+}
+
+func commandInspect(cfg *config, pokemonName string) error {
+	pokemonInfo, ok := cfg.player.pokedex[pokemonName]
+	if !ok {
+		return fmt.Errorf("no pokemon in your pokedex that match the name %s", pokemonName)
+	}
+
+	name := pokemonInfo.Name
+	height := pokemonInfo.Height
+	weight := pokemonInfo.Weight
+	stats := pokemonInfo.Stats
+	types := pokemonInfo.Types
+
+	fmt.Println()
+	fmt.Printf("Name: %s\nHeight: %d\nWeight: %d\n", name, height, weight)
+	fmt.Printf("Stats:\n")
+	for _, stat := range stats {
+		fmt.Printf("    - %s: %d\n", stat.Stat.Name, stat.BaseStat)
+	}
+	fmt.Printf("Types:\n")
+	for _, ptype := range types {
+		fmt.Printf("    - %s\n", ptype.Type.Name)
+	}
+
+	return nil
+}
+
+func commandPokedex(cfg *config, _ string) error {
+	if len(cfg.player.pokedex) < 1 {
+		return fmt.Errorf("you have no pokemon in your pokedex. go capture some to add them")
+	}
+
+	fmt.Printf("Your Pokedex:\n")
+	for key := range cfg.player.pokedex {
+		fmt.Printf(" - %s\n", key)
+	}
 	return nil
 }
